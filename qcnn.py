@@ -14,13 +14,38 @@ now = datetime.now()
 # ─── Hyperparameters ─────────────────────────────────────────────────────────
 DATA_ROOT     = "/Users/siddharthvedam/Downloads/Quantum-Neural-Network-MRI-1/Dataset-vs-CNN"
 OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Quantum-Neural-Network-MRI-1/outputs"
-CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "Pituitary-Backup":2}
+CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "No-Tumor":2, "Pituitary-Backup":3}
 IMG_SIZE      = 8      # 16×16 = 256 pixels
-PCA_COMP      = 32     # 64 features -> 6 qubits (2^6=64)
-BATCH_SIZE    = 32
-EPOCHS        = 1000
-LR            = 0.00025
+PCA_COMP      = 16     # 64 features -> 6 qubits (2^6=64)
+BATCH_SIZE    = 64
+EPOCHS        = 300
+LR            = 0.00075
 
+import argparse
+
+def parse_args():
+    parser = argparse.ArgumentParser(description="Run QCNN with custom hyperparams")
+    parser.add_argument("--img_size",   type=int,   default=8,     help="Image dimension (square)")
+    parser.add_argument("--pca_comp",   type=int,   default=16,    help="Number of PCA components")
+    parser.add_argument("--batch_size", type=int,   default=32,    help="Training batch size")
+    parser.add_argument("--epochs",     type=int,   default=100,   help="Number of epochs")
+    parser.add_argument("--lr",         type=float, default=0.003, help="Learning rate")
+    return parser.parse_args()
+
+def main():
+    args = parse_args()
+
+    IMG_SIZE   = args.img_size
+    PCA_COMP   = args.pca_comp
+    BATCH_SIZE = args.batch_size
+    EPOCHS     = args.epochs
+    LR         = args.lr
+
+    # … rest of your training/testing code …
+    # make sure you reference these variables instead of hard-coded ones
+
+if __name__ == "__main__":
+    main()
 
 def load_topdown(root, folders):
     X, y = [], []
@@ -134,16 +159,18 @@ for epoch in range(1, EPOCHS+1):
     train_loss.append(L)
     train_acc.append(A)
     print(f"Epoch {epoch:2d} | Loss={L:.4f} | Acc={A:.3f} | Time={(time.time()-t0):.2f}s")
+NEW_ROOT = os.path.join(OUTPUT_ROOT, date_str)
+os.makedirs(NEW_ROOT, exist_ok=True)
 
+plot_path = os.path.join(NEW_ROOT, f"{time_str}-graph.png")
 plt.figure(figsize=(6,4))
 plt.subplot(121)
 plt.plot(train_loss, '-o'); plt.title("Train BCE Loss")
 plt.subplot(122)
 plt.plot(train_acc, '-s'); plt.title("Train Accuracy")
-plt.tight_layout(); plt.show()
-NEW_ROOT = os.path.join(OUTPUT_ROOT, date_str)
-plot_path = os.path.join(NEW_ROOT, f"{time_str}-graph.png")
-plt.savefig(plot_path)
+plt.tight_layout(); plt.savefig(plot_path); plt.close()
+print(f"Saved training plots to {plot_path}")
+
 
 
 probs_te = np.array([predict_prob(x, flat_weights) for x in X_te_ang])
@@ -151,9 +178,7 @@ print("Final Test BCE:", bce(y_te, probs_te))
 print("Final Test Acc:", accuracy(y_te, probs_te))
 
 
-output_dir = os.path.join(OUTPUT_ROOT, date_str)
-os.makedirs(output_dir, exist_ok=True)
-file_path = os.path.join(output_dir, f"{time_str}.txt")
+file_path = os.path.join(NEW_ROOT, f"{time_str}.txt")
 with open(file_path, "w") as f:
 
     f.write("Hyperparameters:\n")

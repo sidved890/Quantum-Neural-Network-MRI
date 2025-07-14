@@ -1,1 +1,0 @@
-Hyperparameters:IMG_SIZE = 8PCA_COMP = 16BATCH_SIZE = 64EPOCHS = 5LR = 0.001Detailed test predictions:
