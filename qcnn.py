@@ -12,14 +12,14 @@ now = datetime.now()
 (date_str := now.strftime("%Y-%m-%d"))
 (time_str := now.strftime("%H-%M-%S"))
 # ─── Hyperparameters ─────────────────────────────────────────────────────────
-DATA_ROOT     = "/Users/siddharthvedam/Downloads/Quantum-Neural-Network-MRI-1/Dataset-vs-CNN"
-OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Quantum-Neural-Network-MRI-1/outputs"
-CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "No-Tumor":2, "Pituitary-Backup":3}
+DATA_ROOT     = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/Dataset-vs-CNN"
+OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/outputs"
+CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "Pituitary-Backup":2}
 IMG_SIZE      = 8      # 16×16 = 256 pixels
 PCA_COMP      = 16     # 64 features -> 6 qubits (2^6=64)
 BATCH_SIZE    = 64
 EPOCHS        = 300
-LR            = 0.00075
+LR            = 0.001875
 
 import argparse
 
@@ -162,7 +162,7 @@ for epoch in range(1, EPOCHS+1):
 NEW_ROOT = os.path.join(OUTPUT_ROOT, date_str)
 os.makedirs(NEW_ROOT, exist_ok=True)
 
-plot_path = os.path.join(NEW_ROOT, f"{time_str}-graph.png")
+plot_path = os.path.join(NEW_ROOT, f"Sid---{time_str}-graph.png")
 plt.figure(figsize=(6,4))
 plt.subplot(121)
 plt.plot(train_loss, '-o'); plt.title("Train BCE Loss")
@@ -178,7 +178,7 @@ print("Final Test BCE:", bce(y_te, probs_te))
 print("Final Test Acc:", accuracy(y_te, probs_te))
 
 
-file_path = os.path.join(NEW_ROOT, f"Ayaan---{time_str}.txt")
+file_path = os.path.join(NEW_ROOT, f"Sid---{time_str}.txt")
 with open(file_path, "w") as f:
 
     f.write("Hyperparameters:\n")

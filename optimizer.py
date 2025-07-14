@@ -1,11 +1,33 @@
 import pandas as pd
+import os, glob
 import numpy as np
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from itertools import product
 
-# 1) Load your sheet
-df = pd.read_excel("experiment_results.xlsx")
+sheets_root = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/outputs/sheets"
+
+# 2) find every .xlsx in any sub-folder, then pick the one with the newest modification time
+all_excels = glob.glob(os.path.join(sheets_root, "*", "*.xlsx"))
+latest    = max(all_excels, key=os.path.getmtime)
+
+print("Loading latest sheet:", latest)
+df = pd.read_excel(latest)
+
+# Load latest
+df = pd.read_excel(latest)
+
+# Drop rows missing our target
+before = len(df)
+df = df.dropna(subset=["Max_Accuracy"])
+after  = len(df)
+print(f"Dropped {before-after} rows with missing Max_Accuracy, {after} remain.")
+
+# Now extract X and y
+X = df[["IMG_SIZE","PCA_COMP","BATCH_SIZE","EPOCHS","LR"]].values
+y = df["Max_Accuracy"].values
+
+# ... rest of your code ...
 
 # 2) Select inputs (X) and target (y)
 X = df[["IMG_SIZE","PCA_COMP","BATCH_SIZE","EPOCHS","LR"]].values
