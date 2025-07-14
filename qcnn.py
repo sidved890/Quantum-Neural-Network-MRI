@@ -178,7 +178,7 @@ print("Final Test BCE:", bce(y_te, probs_te))
 print("Final Test Acc:", accuracy(y_te, probs_te))
 
 
-file_path = os.path.join(NEW_ROOT, f"{time_str}.txt")
+file_path = os.path.join(NEW_ROOT, f"Ayaan---{time_str}.txt")
 with open(file_path, "w") as f:
 
     f.write("Hyperparameters:\n")

@@ -1,0 +1,10 @@
+Hyperparameters:
+IMG_SIZE = 16
+PCA_COMP = 32
+BATCH_SIZE = 64
+EPOCHS = 200
+LR = 0.0015
+Detailed test predictions:
+Final Test BCE: 0.6064
+Final Test Acc: 0.6744
+Maximum accuracy: 0.6550 at epoch 199
