@@ -7,7 +7,11 @@ date_str = now.strftime("%Y-%m-%d")     # e.g. “2025-07-14”
 time_str = now.strftime("%H-%M-%S")     # e.g. “09-42-15”
 
 # 1) Point this at the folder that holds all your {date}/ subfolders
+<<<<<<< HEAD
 root_dir = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/outputs"
+=======
+root_dir = ""
+>>>>>>> 21b02d2 (Version for Rui)
 
 param_re    = re.compile(r'(\w+)\s*=\s*([0-9.]+)')
 bce_re      = re.compile(r'Final Test BCE:\s*([0-9.]+)')
@@ -48,4 +52,8 @@ out_path = os.path.join(save_dir, filename)
 
 # 3) Write out the Excel file there
 df.to_excel(out_path, index=False)
+<<<<<<< HEAD
 print(f"Written spreadsheet to {out_path}")
+=======
+print(f"Written spreadsheet to {out_path}")
+>>>>>>> 21b02d2 (Version for Rui)

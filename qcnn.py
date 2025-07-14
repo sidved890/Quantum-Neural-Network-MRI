@@ -12,9 +12,15 @@ now = datetime.now()
 (date_str := now.strftime("%Y-%m-%d"))
 (time_str := now.strftime("%H-%M-%S"))
 # ─── Hyperparameters ─────────────────────────────────────────────────────────
+<<<<<<< HEAD
 DATA_ROOT     = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/Dataset-vs-CNN"
 OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/outputs"
 CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "Pituitary-Backup":2}
+=======
+DATA_ROOT     = ""
+OUTPUT_ROOT  = ""
+CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1,  "Pituitary-Backup":2}
+>>>>>>> 21b02d2 (Version for Rui)
 IMG_SIZE      = 8      # 16×16 = 256 pixels
 PCA_COMP      = 16     # 64 features -> 6 qubits (2^6=64)
 BATCH_SIZE    = 64

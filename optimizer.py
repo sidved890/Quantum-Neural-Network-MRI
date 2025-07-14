@@ -5,7 +5,11 @@ from sklearn.preprocessing import PolynomialFeatures
 from sklearn.linear_model import LinearRegression
 from itertools import product
 
+<<<<<<< HEAD
 sheets_root = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/outputs/sheets"
+=======
+sheets_root = ""
+>>>>>>> 21b02d2 (Version for Rui)
 
 # 2) find every .xlsx in any sub-folder, then pick the one with the newest modification time
 all_excels = glob.glob(os.path.join(sheets_root, "*", "*.xlsx"))
@@ -85,3 +89,4 @@ print(f"\nBest continuous suggestion: {p2[ix]:.4f}")
 print("  hyperparams:", dict(zip(
     ["IMG_SIZE","PCA_COMP","BATCH_SIZE","EPOCHS","LR"], grid[ix]
 )))
+
