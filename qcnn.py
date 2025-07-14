@@ -12,14 +12,14 @@ now = datetime.now()
 (date_str := now.strftime("%Y-%m-%d"))
 (time_str := now.strftime("%H-%M-%S"))
 # ─── Hyperparameters ─────────────────────────────────────────────────────────
-DATA_ROOT     = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantom-Nural-Network-2/Dataset-vs-CNN"
-OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantom-Nural-Network-2/outputs"
+DATA_ROOT     = "/Users/siddharthvedam/Downloads/Quantum-Neural-Network-MRI-1/Dataset-vs-CNN"
+OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Quantum-Neural-Network-MRI-1/outputs"
 CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "Pituitary-Backup":2}
-IMG_SIZE      = 8      # 8×8 = 64 pixels
-PCA_COMP      = 16     # 16 features -> 4 qubits (2^2=4)
+IMG_SIZE      = 8      # 16×16 = 256 pixels
+PCA_COMP      = 32     # 64 features -> 6 qubits (2^6=64)
 BATCH_SIZE    = 32
-EPOCHS        = 75
-LR            = 0.0005
+EPOCHS        = 1000
+LR            = 0.00025
 
 
 # ─── 1) Load “top-down” images only ───────────────────────────────────────────
