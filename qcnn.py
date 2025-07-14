@@ -22,7 +22,6 @@ EPOCHS        = 1000
 LR            = 0.00025
 
 
-# ─── 1) Load “top-down” images only ───────────────────────────────────────────
 def load_topdown(root, folders):
     X, y = [], []
     for cls, lbl in folders.items():
@@ -52,7 +51,6 @@ X_tr, X_te, y_tr, y_te = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=42)
 print(f"Train set: {X_tr.shape}, Test set: {X_te.shape}")
 
-# ─── 3) PCA → angle-encoding ─────────────────────────────────────────────────
 pca = PCA(n_components=PCA_COMP)
 X_tr_pca = pca.fit_transform(X_tr)
 X_te_pca = pca.transform(X_te)
@@ -111,7 +109,6 @@ def accuracy(y, p):
     preds = (p >= 0.5).astype(int)
     return np.mean(preds == y)
 
-# ─── 6) Initialize weights & optimizer ────────────────────────────────────────
 rng = np.random.default_rng(1)
 init_weights = {
     'conv1': pnp.array(rng.normal(0, 0.1, size=2), requires_grad=True),
@@ -121,7 +118,6 @@ init_weights = {
 flat_weights = flatten_weights(init_weights)
 opt = qml.AdamOptimizer(stepsize=LR)
 
-# ─── 7) Training loop ─────────────────────────────────────────────────────────
 train_loss, train_acc = [], []
 print("Training QCNN…")
 for epoch in range(1, EPOCHS+1):
@@ -132,7 +128,6 @@ for epoch in range(1, EPOCHS+1):
         preds = pnp.array([predict_prob(x, w) for x in Xb])
         return bce(yb, preds)
     flat_weights = opt.step(cost, flat_weights)
-    # Evaluate on full training set
     probs_tr = np.array([predict_prob(x, flat_weights) for x in X_tr_ang])
     L = bce(y_tr, probs_tr)
     A = accuracy(y_tr, probs_tr)
@@ -140,7 +135,6 @@ for epoch in range(1, EPOCHS+1):
     train_acc.append(A)
     print(f"Epoch {epoch:2d} | Loss={L:.4f} | Acc={A:.3f} | Time={(time.time()-t0):.2f}s")
 
-# ─── 8) Plot training curves ──────────────────────────────────────────────────
 plt.figure(figsize=(6,4))
 plt.subplot(121)
 plt.plot(train_loss, '-o'); plt.title("Train BCE Loss")
@@ -152,18 +146,16 @@ plot_path = os.path.join(NEW_ROOT, f"{time_str}-graph.png")
 plt.savefig(plot_path)
 
 
-# ─── 9) Final test evaluation ────────────────────────────────────────────────
 probs_te = np.array([predict_prob(x, flat_weights) for x in X_te_ang])
 print("Final Test BCE:", bce(y_te, probs_te))
 print("Final Test Acc:", accuracy(y_te, probs_te))
 
-# ─── 10) Detailed test predictions & save to file ────────────────────────────
 
 output_dir = os.path.join(OUTPUT_ROOT, date_str)
 os.makedirs(output_dir, exist_ok=True)
 file_path = os.path.join(output_dir, f"{time_str}.txt")
 with open(file_path, "w") as f:
-    # Write hyperparameters at the top of the output file
+
     f.write("Hyperparameters:\n")
     f.write(f"IMG_SIZE = {IMG_SIZE}\n")
     f.write(f"PCA_COMP = {PCA_COMP}\n")
