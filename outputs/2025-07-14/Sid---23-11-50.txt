@@ -1,0 +1,12 @@
+Hyperparameters:
+IMG_SIZE      = 8
+PCA_COMP      = 8
+BATCH_SIZE    = 32
+EPOCHS        = 700
+LR            = 0.002
+RANDOM_STATE  = 123
+
+Detailed test predictions:
+Final Test CCE: 0.8277
+Final Test Acc: 0.7394
+Maximum training Acc: 0.7507 at epoch 664
