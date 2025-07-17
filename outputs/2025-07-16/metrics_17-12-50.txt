@@ -1,0 +1,27 @@
+QUANTUM NEURAL NETWORK - MRI CLASSIFICATION RESULTS
+============================================================
+
+CONFIGURATION:
+Image Size: 4x4 (16 pixels)
+Qubits: 4
+Classes: 4
+Layers: 3
+Batch Size: 16
+Epochs: 25
+Learning Rate: 0.05
+Augmentation Factor: 2
+Random State: 900
+
+DATASET:
+Total samples (after augmentation): 7372
+Training samples: 4422
+Validation samples: 1475
+Test samples: 1475
+
+RESULTS:
+Best Validation Accuracy: 0.5146
+Final Test Loss: 1.2523
+Final Test Accuracy: 0.5139
+Maximum Training Accuracy: 0.5194
+Final Training Accuracy: 0.5165
+Final Validation Accuracy: 0.5146

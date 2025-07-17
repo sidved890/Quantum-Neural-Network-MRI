@@ -1,0 +1,11 @@
+Test type: 4-class classification with hybrid QCNN
+Hyperparameters:
+IMG_SIZE      = 8
+N_QUBITS      = 6
+BATCH_SIZE    = 16
+EPOCHS        = 200
+LR            = 0.00175
+
+Final Test Loss: 0.3277
+Final Test Acc : 0.8792
+Best Training Acc: 0.8659 @ epoch 191

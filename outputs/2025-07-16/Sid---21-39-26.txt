@@ -1,0 +1,11 @@
+Test type: Binary classification
+Hyperparameters:
+IMG_SIZE = 8
+PCA_COMP = 16
+BATCH_SIZE = 32
+EPOCHS = 200
+LR = 0.00175
+Detailed test predictions:
+Final Test BCE: 0.4471
+Final Test Acc: 0.8140
+Maximum accuracy: 0.8363 at epoch 111
