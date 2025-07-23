@@ -21,11 +21,11 @@ CLASS_FOLDERS = {
     "Pituitary-Backup": 2
 }
 IMG_SIZE = 8         # <= Input images will be resized to square IMG_SIZE x IMG_SIZE
-N_QUBITS = 5         # Number of quantum features/qubits for circuit (suggest: same as PCA n_components)
+N_QUBITS = 6         # Number of quantum features/qubits for circuit (suggest: same as PCA n_components)
 N_CLASSES = 3
 N_LAYERS = 2        # Number of quantum Convolution/Pooling blocks
 BATCH_SIZE = 16
-EPOCHS = 10000
+EPOCHS = 700
 LR = 0.00175
 OUTPUT_ROOT = "./outputs"
 RANDOM_STATE = 123

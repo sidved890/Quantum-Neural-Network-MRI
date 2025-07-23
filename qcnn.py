@@ -1,195 +1,199 @@
+
 #!/usr/bin/env python3
-import os, time
+
+import os
 import numpy as np
+import torch
+from torch import nn
+from torch.utils.data import DataLoader, TensorDataset
+import matplotlib.pyplot as plt
+from datetime import datetime
+import pennylane as qml
 from PIL import Image
 from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
-import pennylane as qml
-from pennylane import numpy as pnp
-import matplotlib.pyplot as plt
-from datetime import datetime
-now = datetime.now()
-(date_str := now.strftime("%Y-%m-%d"))
-(time_str := now.strftime("%H-%M-%S"))
-# ─── Hyperparameters ─────────────────────────────────────────────────────────
-DATA_ROOT     = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/Dataset-vs-CNN"
-OUTPUT_ROOT  = "/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/outputs"
-CLASS_FOLDERS = {"Glioma-Backup":0, "Meningioma-Backup":1, "Pituitary-Backup":2}
-IMG_SIZE      = 8      # 16×16 = 256 pixels
-PCA_COMP      = 16     # 64 features -> 6 qubits (2^6=64)
-BATCH_SIZE    = 32
-EPOCHS        = 200
-LR            = 0.00175
-RANDOM_STATE  = 180 
 
-import argparse
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Run QCNN with custom hyperparams")
-    parser.add_argument("--img_size",   type=int,   default=8,     help="Image dimension (square)")
-    parser.add_argument("--pca_comp",   type=int,   default=16,    help="Number of PCA components")
-    parser.add_argument("--batch_size", type=int,   default=32,    help="Training batch size")
-    parser.add_argument("--epochs",     type=int,   default=100,   help="Number of epochs")
-    parser.add_argument("--lr",         type=float, default=0.003, help="Learning rate")
-    return parser.parse_args()
-
-def main():
-    args = parse_args()
-
-    IMG_SIZE   = args.img_size
-    PCA_COMP   = args.pca_comp
-    BATCH_SIZE = args.batch_size
-    EPOCHS     = args.epochs
-    LR         = args.lr
-
-    # … rest of your training/testing code …
-    # make sure you reference these variables instead of hard-coded ones
-
-if __name__ == "__main__":
-    main()
-
-def load_topdown(root, folders):
-    X, y = [], []
-    for cls, lbl in folders.items():
-        view_dir = os.path.join(root, cls, "1")
-        if not os.path.isdir(view_dir):
-            print(f"Missing view folder: {view_dir}")
-            continue
-        for fn in os.listdir(view_dir):
-            if fn.lower().endswith((".jpg",".png",".jpeg")):
-                img = Image.open(os.path.join(view_dir, fn))\
-                         .convert("L")\
-                         .resize((IMG_SIZE, IMG_SIZE))
-                X.append(np.array(img).flatten()/255.0)
-                y.append(lbl)
-    X = np.array(X); y = np.array(y)
-    print(f"Loaded {len(X)} top-down images.")
-    return X, y
-
-print("Loading data…")
-X, y = load_topdown(DATA_ROOT, CLASS_FOLDERS)
-
-# ─── 2) Binary filter & train/test split ─────────────────────────────────────
-mask = np.isin(y, [0,1])  # Glioma vs Meningioma
-X, y = X[mask], y[mask]
-y = (y == 1).astype(int)
-X_tr, X_te, y_tr, y_te = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=RANDOM_STATE)
-print(f"Train set: {X_tr.shape}, Test set: {X_te.shape}")
-
-pca = PCA(n_components=PCA_COMP)
-X_tr_pca = pca.fit_transform(X_tr)
-X_te_pca = pca.transform(X_te)
-print(f"PCA explained variance sum: {pca.explained_variance_ratio_.sum():.3f}")
-
-def normalize_angles(mat):
-    mins = mat.min(axis=1, keepdims=True)
-    maxs = mat.max(axis=1, keepdims=True)
-    return np.pi * (mat - mins) / (maxs - mins + 1e-8)
-
-X_tr_ang = normalize_angles(X_tr_pca)
-X_te_ang = normalize_angles(X_te_pca)
-
-# ─── 4) QCNN definition ──────────────────────────────────────────────────────
-n_wires = int(np.log2(PCA_COMP))  # should be 2
-dev = qml.device("default.qubit", wires=n_wires)
-
-def conv_block(params, wires):
-    qml.RY(params[0], wires=wires[0])
-    qml.RY(params[1], wires=wires[1])
-    qml.CNOT(wires=wires)
-
-def pool_block(param, wires):
-    qml.CRY(param, wires=[wires[1], wires[0]])
-
-def flatten_weights(weights):
-    return pnp.concatenate([weights['conv1'], pnp.array([weights['pool1']]), weights['conv2']])
-
-def unflatten_weights(flat):
-    return {
-        'conv1': flat[:2],
-        'pool1': flat[2],
-        'conv2': flat[3:5]
-    }
-
-@qml.qnode(dev)
-def qcnn_circuit(x, flat_weights):
-    weights = unflatten_weights(flat_weights)
-    qml.AmplitudeEmbedding(x, wires=range(n_wires), normalize=True)
-    conv_block(weights['conv1'], wires=[0,1])
-    pool_block(weights['pool1'], wires=[0,1])
-    conv_block(weights['conv2'], wires=[0,1])
-    return qml.expval(qml.PauliZ(0))
-
-# ─── 5) Probability mapping & metrics ─────────────────────────────────────────
-def predict_prob(x, flat_weights):
-    z = qcnn_circuit(x, flat_weights)
-    return (z + 1.0) / 2.0
-
-# Use pnp.* for all math in differentiable code!
-def bce(y, p):
-    p = pnp.clip(p, 1e-8, 1-1e-8)
-    return -pnp.mean(y * pnp.log(p) + (1-y) * pnp.log(1-p))
-
-def accuracy(y, p):
-    preds = (p >= 0.5).astype(int)
-    return np.mean(preds == y)
-
-rng = np.random.default_rng(1)
-init_weights = {
-    'conv1': pnp.array(rng.normal(0, 0.1, size=2), requires_grad=True),
-    'pool1': pnp.array(rng.normal(0, 0.1), requires_grad=True),
-    'conv2': pnp.array(rng.normal(0, 0.1, size=2), requires_grad=True),
+# ─── Config and Hyperparameters ─────────────────────────────
+DATA_ROOT     = '/Users/siddharthvedam/Downloads/Track 7---SRA/Quantum-Neural-Network-MRI/Dataset-vs-CNN'
+CLASS_FOLDERS = {
+    'Glioma-Backup':    0,
+    'Meningioma-Backup':1,
+    'Pituitary-Backup':  2,
+    'No-Tumor':          3,
+    'ALL-Tumor':        4
 }
-flat_weights = flatten_weights(init_weights)
-opt = qml.AdamOptimizer(stepsize=LR)
+# Indices of the two classes to compare
+COMPARE_A      = 2  # e.g., 0 for Glioma-Backup
+COMPARE_B      = 3 # e.g., 1 for Meningioma-Backup
 
-train_loss, train_acc = [], []
-print("Training QCNN…")
-for epoch in range(1, EPOCHS+1):
-    t0 = time.time()
-    idx = rng.choice(len(X_tr_ang), size=BATCH_SIZE, replace=False)
-    Xb, yb = X_tr_ang[idx], y_tr[idx]
-    def cost(w):
-        preds = pnp.array([predict_prob(x, w) for x in Xb])
-        return bce(yb, preds)
-    flat_weights = opt.step(cost, flat_weights)
-    probs_tr = np.array([predict_prob(x, flat_weights) for x in X_tr_ang])
-    L = bce(y_tr, probs_tr)
-    A = accuracy(y_tr, probs_tr)
-    train_loss.append(L)
-    train_acc.append(A)
-    print(f"Epoch {epoch:2d} | Loss={L:.4f} | Acc={A:.3f} | Time={(time.time()-t0):.2f}s")
-NEW_ROOT = os.path.join(OUTPUT_ROOT, date_str)
-os.makedirs(NEW_ROOT, exist_ok=True)
+IMG_SIZE       = 8         # resized to IMG_SIZE x IMG_SIZE
+N_QUBITS       = 5         # quantum features/qubits
+N_LAYERS       = 2         # number of convolution/pooling blocks
+N_CLASSES      = 2         # binary classification output size
+BATCH_SIZE     = 32
+EPOCHS         = 700
+LR             = 0.0015
+OUTPUT_ROOT    = './outputs'
+RANDOM_STATE   = 123
 
-plot_path = os.path.join(NEW_ROOT, f"Sid---{time_str}-graph.png")
-plt.figure(figsize=(6,4))
-plt.subplot(121)
-plt.plot(train_loss, '-o'); plt.title("Train BCE Loss")
-plt.subplot(122)
-plt.plot(train_acc, '-s'); plt.title("Train Accuracy")
-plt.tight_layout(); plt.savefig(plot_path); plt.close()
-print(f"Saved training plots to {plot_path}")
+# ─── Utility Functions ─────────────────────────────────────
 
+def load_topdown_images(data_root, class_folders, img_size):
+    X, y = [], []
+    for class_name, class_idx in class_folders.items():
+        img_dir = os.path.join(data_root, class_name, '1')
+        if not os.path.isdir(img_dir):
+            print(f"Warning: Could not find folder {img_dir}")
+            continue
+        for fname in os.listdir(img_dir):
+            if not fname.lower().endswith(
+                ('.png', '.jpg', '.jpeg', '.bmp', '.tif', '.tiff')):
+                continue
+            fpath = os.path.join(img_dir, fname)
+            try:
+                img = Image.open(fpath).convert('L')
+                img = img.resize((img_size, img_size))
+                arr = np.array(img, dtype=np.float32) / 255.0
+                X.append(arr.flatten()); y.append(class_idx)
+            except Exception as e:
+                print(f'Could not process {fpath}: {e}')
+    return np.array(X), np.array(y)
 
+# ─── QCNN Blocks ───────────────────────────────────────────
+def conv_block(weights, wires):
+    for i in range(len(wires)):
+        qml.CNOT(wires=[wires[i], wires[(i+1)%len(wires)]])
+        qml.RZ(weights[i], wires=wires[(i+1)%len(wires)])
+        qml.CNOT(wires=[wires[i], wires[(i+1)%len(wires)]])
+        qml.RX(np.pi/2, wires=wires[i]);   qml.RX(np.pi/2, wires=wires[(i+1)%len(wires)])
+        qml.CNOT(wires=[wires[i], wires[(i+1)%len(wires)]])
+        qml.RX(-np.pi/2, wires=wires[i]);  qml.RX(-np.pi/2, wires=wires[(i+1)%len(wires)])
+        qml.CZ(wires=[wires[i], wires[(i+1)%len(wires)]])
+        qml.RZ(weights[i+2], wires=wires[(i+1)%len(wires)])
+        qml.CZ(wires=[wires[i], wires[(i+1)%len(wires)]])
 
-probs_te = np.array([predict_prob(x, flat_weights) for x in X_te_ang])
-print("Final Test BCE:", bce(y_te, probs_te))
-print("Final Test Acc:", accuracy(y_te, probs_te))
+def pool_block(weights, wires):
+    qml.RY(weights[0], wires=wires[0])
+    qml.RY(weights[1], wires=wires[1])
+    qml.CNOT(wires=[wires[0], wires[1]])
+    qml.CRY(weights[0], wires=[wires[1], wires[0]])
+    qml.CRX(weights[1], wires=[wires[0], wires[1]])
+    qml.CNOT(wires=[wires[1], wires[0]])
 
+# ─── QCNN Circuit ──────────────────────────────────────────
+def qcnn_circuit(x, conv, pool, n_layers=N_LAYERS, n_qubits=N_QUBITS):
+    wires = list(range(n_qubits))
+    qml.AngleEmbedding(x, wires=wires, rotation='Y')
+    for l in range(n_layers):
+        conv_block(conv[l], wires)
+        pool_block(pool[l], wires)
+        wires = wires[1:]
+    return [qml.expval(qml.PauliZ(w)) for w in wires[:N_CLASSES]]
 
-file_path = os.path.join(NEW_ROOT, f"Sid---{time_str}.txt")
-with open(file_path, "w") as f:
-    f.write("Test type: Binary classification\n")
-    f.write("Hyperparameters:\n")
-    f.write(f"IMG_SIZE = {IMG_SIZE}\n")
-    f.write(f"PCA_COMP = {PCA_COMP}\n")
-    f.write(f"BATCH_SIZE = {BATCH_SIZE}\n")
-    f.write(f"EPOCHS = {EPOCHS}\n")
-    f.write(f"LR = {LR}\n")
-    f.write("Detailed test predictions:\n")
-    f.write(f"Final Test BCE: {bce(y_te, probs_te):.4f}\n")
-    f.write(f"Final Test Acc: {accuracy(y_te, probs_te):.4f}\n")
-    f.write(f"Maximum accuracy: {max(train_acc):.4f} at epoch {train_acc.index(max(train_acc)) + 1}\n")
-print(f"Saved test outputs to {file_path}")
+# ─── PennyLane Setup ───────────────────────────────────────
+dev = qml.device('default.qubit', wires=N_QUBITS)
+weight_shapes = {'conv': (N_LAYERS, 3*N_QUBITS), 'pool': (N_LAYERS, 2)}
+
+@qml.qnode(dev, interface='torch')
+def qnode(inputs, conv, pool):
+    return qcnn_circuit(inputs, conv, pool)
+
+qcnn_layer = qml.qnn.TorchLayer(qnode, weight_shapes)
+
+# ─── Hybrid QCNN Model ─────────────────────────────────────
+class HybridQCNN(nn.Module):
+    def __init__(self, n_classes=N_CLASSES):
+        super().__init__()
+        self.qc = qcnn_layer
+        self.fc = nn.Linear(n_classes, n_classes)
+    def forward(self, x):
+        return self.fc(self.qc(x))
+
+# ─── Loss & Accuracy ───────────────────────────────────────
+def cce_loss(outputs, targets):
+    return nn.CrossEntropyLoss()(outputs, targets)
+
+def accuracy(outputs, targets):
+    return (outputs.argmax(dim=1) == targets).float().mean().item()
+
+# ─── Main: Single Pair Comparison ──────────────────────────
+if __name__ == '__main__':
+    np.random.seed(RANDOM_STATE); torch.manual_seed(RANDOM_STATE)
+    X, y = load_topdown_images(DATA_ROOT, CLASS_FOLDERS, IMG_SIZE)
+    idx_to_name = {v: k for k, v in CLASS_FOLDERS.items()}
+
+    # Use global COMPARE_A and COMPARE_B
+    a, b = COMPARE_A, COMPARE_B
+    name_a = idx_to_name[a].replace(' ', '_')
+    name_b = idx_to_name[b].replace(' ', '_')
+    print(f"\n=== Training {name_a} vs {name_b} ===")
+
+    # Filter and remap labels
+    mask = np.isin(y, [a, b])
+    X_sel, y_sel = X[mask], y[mask]
+    y_bin = np.where(y_sel == a, 0, 1)
+
+    # PCA + normalize to [0, π]
+    pca = PCA(n_components=N_QUBITS, random_state=RANDOM_STATE)
+    X_red = pca.fit_transform(X_sel)
+    mn, mx = X_red.min(axis=0), X_red.max(axis=0)
+    X_angles = ((X_red - mn)/(mx-mn+1e-10)) * np.pi
+
+    # Train/test split
+    X_tr, X_te, y_tr, y_te = train_test_split(
+        X_angles, y_bin, test_size=0.2, stratify=y_bin, random_state=RANDOM_STATE)
+
+    # Balance
+    unique, counts = np.unique(y_tr, return_counts=True)
+    min_c = counts.min()
+    idxs = np.hstack([np.random.choice(np.where(y_tr == c)[0], min_c, replace=False)
+                      for c in unique])
+    np.random.shuffle(idxs)
+    X_tr, y_tr = X_tr[idxs], y_tr[idxs]
+
+    # DataLoaders
+    tr_ds = TensorDataset(torch.from_numpy(X_tr.astype(np.float32)), torch.from_numpy(y_tr))
+    te_ds = TensorDataset(torch.from_numpy(X_te.astype(np.float32)), torch.from_numpy(y_te))
+    tr_ld = DataLoader(tr_ds, batch_size=BATCH_SIZE, shuffle=True)
+    te_ld = DataLoader(te_ds, batch_size=BATCH_SIZE)
+
+    # Model & optimizer
+    model = HybridQCNN().float()
+    opt = torch.optim.Adam(model.parameters(), lr=LR)
+
+    # Training
+    losses, accs = [], []
+    for ep in range(1, EPOCHS + 1):
+        model.train()
+        Ls, As = [], []
+        for xb, yb in tr_ld:
+            opt.zero_grad()
+            out = model(xb)
+            loss = cce_loss(out, yb)
+            loss.backward()
+            opt.step()
+            Ls.append(loss.item()); As.append(accuracy(out, yb))
+        L, A = np.mean(Ls), np.mean(As)
+        losses.append(L); accs.append(A)
+        print(f"Epoch {ep}/{EPOCHS} | Loss={L:.4f} | Acc={A:.3f}")
+
+    # Evaluation
+    model.eval()
+    Ls, As = [], []
+    with torch.no_grad():
+        for xb, yb in te_ld:
+            out = model(xb)
+            Ls.append(cce_loss(out, yb).item()); As.append(accuracy(out, yb))
+    test_loss, test_acc = np.mean(Ls), np.mean(As)
+    print(f"Test Loss {test_loss:.4f} | Test Acc {test_acc:.3f}")
+
+    # Save
+    base = f"{name_a}_vs_{name_b}"
+    now = datetime.now().strftime('%Y%m%d_%H%M%S')
+    odir = os.path.join(OUTPUT_ROOT, base + '_' + now)
+    os.makedirs(odir, exist_ok=True)
+
+    # Plot
+    plt.figure()
+    plt.plot(losses, label='loss'); plt.plot(accs, label='acc'); plt.legend()
+    plt.savefig(os.path.join(odir, base + '_curve.png'))

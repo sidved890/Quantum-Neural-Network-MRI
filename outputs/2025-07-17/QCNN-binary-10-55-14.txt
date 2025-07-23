@@ -1,0 +1,11 @@
+Test type: Binary QCNN classification (Glioma vs. Meningioma)
+Hyperparameters:
+IMG_SIZE      = 8
+N_QUBITS      = 5
+BATCH_SIZE    = 16
+EPOCHS        = 700
+LR            = 0.0015
+
+Final Test Loss: 0.3328
+Final Test Acc:  0.8958
+Max train acc: 0.8750 at epoch 689

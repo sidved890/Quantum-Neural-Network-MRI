@@ -27,7 +27,7 @@ N_CLASSES  = 4            # ↑ now a 4‑way classification
 N_LAYERS   = 2
 BATCH_SIZE = 16
 EPOCHS     = 200
-LR         = 0.0015
+LR         = 0.00175
 OUTPUT_ROOT= "./outputs"
 RANDOM_STATE = 123
 

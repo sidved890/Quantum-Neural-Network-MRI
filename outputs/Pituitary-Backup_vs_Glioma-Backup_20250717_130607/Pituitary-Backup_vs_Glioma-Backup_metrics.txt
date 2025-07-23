@@ -1,0 +1,11 @@
+Test type: Binary QCNN classification (Pituitary-Backup vs Glioma-Backup)
+Hyperparameters:
+IMG_SIZE   = 8
+N_QUBITS   = 5
+BATCH_SIZE = 32
+EPOCHS     = 700
+LR         = 0.0015
+
+Final Test Loss: 0.0878
+Final Test Acc:  0.9625
+Max Train Acc:  0.9917 at epoch 346

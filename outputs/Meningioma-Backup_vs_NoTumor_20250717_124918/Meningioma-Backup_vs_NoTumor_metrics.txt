@@ -1,0 +1,11 @@
+Test type: Binary QCNN classification (Meningioma-Backup vs. No-Tumor)
+Hyperparameters:
+IMG_SIZE   = 8
+N_QUBITS   = 5
+BATCH_SIZE = 32
+EPOCHS     = 700
+LR         = 0.0015
+
+Final Test Loss: 0.3085
+Final Test Acc:  0.8683
+Max Train Acc:  0.9403 at epoch 8
